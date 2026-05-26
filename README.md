@@ -6,6 +6,8 @@ search, edit fields, and browse recent activity — all from the terminal.
 This project is an unofficial command-line client for Bugzilla. It is not
 affiliated with, endorsed by, or sponsored by the Bugzilla project or Mozilla.
 
+It is vibe coded so it may have some bugs.
+
 ## Setup
 
 **Linux / macOS**
