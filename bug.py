@@ -166,5 +166,52 @@ def edit_bug(bug_id, status, resolution, priority, severity, assigned_to, produc
     click.echo(f"Bug {bug_id} updated.")
 
 
+@cli.command("watch")
+@click.option("--since", default=None, metavar="TIMESPEC",
+              help="Look back on startup (e.g. 15m, 1h). Default: now")
+@click.option("--interval", default=120, show_default=True, metavar="SECONDS",
+              help="Poll interval in seconds")
+@click.option("--product", default=None, help="Filter by product")
+@click.option("--component", default=None, help="Filter by component")
+def watch_activity(since, interval, product, component):
+    """Watch for new comments, polling every INTERVAL seconds."""
+    import time
+    from datetime import datetime, timezone
+
+    if not sys.stdout.isatty():
+        click.echo("Error: 'watch' requires a TTY.", err=True)
+        sys.exit(1)
+
+    try:
+        last_poll = parse_since(since) if since else datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    click.echo(f"Watching for activity since {last_poll}. Ctrl+C to stop.\n")
+
+    try:
+        while True:
+            fetch_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            click.echo("\rpolling...", nl=False)
+            try:
+                items = get_activity(last_poll, product=product, component=component)
+            except Exception as e:
+                click.echo(f"\rError: {e}", err=True)
+                time.sleep(interval)
+                continue
+
+            since_label = last_poll
+            last_poll = fetch_start
+
+            if items:
+                click.echo("\r            ")  # clear "polling..." line
+                click.echo(render_activity(items, since_label))
+
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        click.echo("\rStopped.")
+
+
 if __name__ == "__main__":
     cli()
