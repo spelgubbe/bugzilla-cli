@@ -1,5 +1,6 @@
 import sys
 import textwrap
+from datetime import datetime
 
 _RESET = "\033[0m"
 _BOLD = "\033[1m"
@@ -27,7 +28,10 @@ def _status_color(status: str) -> str:
 
 
 def _fmt_time(iso: str) -> str:
-    return iso.replace("T", " ").replace("Z", " UTC") if iso else ""
+    if not iso:
+        return ""
+    dt = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone()
+    return dt.strftime("%Y-%m-%d %H:%M:%S %z")
 
 
 def render_thread(bug: dict) -> str:

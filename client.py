@@ -156,12 +156,14 @@ def parse_since(since: str) -> str:
         raise ValueError(f"Invalid --since value: {since!r}. Use e.g. '24h', '2d', '1w', or 'YYYY-MM-DD'")
 
 
-def get_activity(since_dt: str, product: str = None, component: str = None, limit: int = 50) -> list[dict]:
+def get_activity(since_dt: str, product: str = None, component: str = None, limit: int = 0) -> list[dict]:
     params = [
         ("f1", "delta_ts"), ("o1", "greaterthan"), ("v1", since_dt),
-        ("limit", limit),
+        ("order", "changeddate DESC"),
         ("api_key", _API_KEY),
     ]
+    if limit:
+        params.append(("limit", limit))
     if product:
         params.append(("product", product))
     if component:

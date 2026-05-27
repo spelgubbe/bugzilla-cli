@@ -102,7 +102,7 @@ def search(assigned_to, reporter, cc, product, component, status, priority, seve
               help="Show comments since this point (e.g. 24h, 2d, 1w, or YYYY-MM-DD)")
 @click.option("--product", default=None, help="Filter by product")
 @click.option("--component", default=None, help="Filter by component")
-@click.option("--limit", default=50, show_default=True, help="Max bugs to scan")
+@click.option("--limit", default=0, show_default=True, help="Max bugs to scan (0 = no limit)")
 @click.option("--format", "fmt", default="table", show_default=True,
               type=click.Choice(["table", "json"], case_sensitive=False),
               help="Output format")
