@@ -57,10 +57,11 @@ python bug.py search --assigned-to me --status NEW
 python bug.py search --product Firefox --component Networking --status ASSIGNED
 python bug.py search --mentions login --since 2026-05-01
 python bug.py search --mentions authorization --since 2026-05-01 --until 2026-05-15
+python bug.py search --commenter me --since 2026-05-01
 python bug.py search --assigned-to me --format json
 ```
 
-`--mentions` searches the full text of all comments and descriptions. `--since` and `--until` filter by last activity date.
+`--mentions` searches the full text of all comments and descriptions. `--commenter` finds bugs where a specific person has commented. `--since` and `--until` filter by last activity date.
 
 ### Edit a bug
 
@@ -71,13 +72,25 @@ python bug.py edit 12345 --assigned-to me --priority P1
 
 ### Recent activity
 
-Show comments posted across the tracker in the last 24 hours:
+Show all comments posted across the tracker in the last 24 hours:
 
 ```bash
 python bug.py activity
 python bug.py activity --since 2d --product MyProduct
 python bug.py activity --format json --output report.json
 ```
+
+### Browse comments by author
+
+Find comments written by a specific person within a time window:
+
+```bash
+python bug.py comments --author me --since 2026-05-28 --until 2026-05-29
+python bug.py comments --author me --since 1w
+python bug.py comments --author colleague@example.com --product MyProduct
+```
+
+Unlike `search --commenter`, this filters on the comment's actual creation time rather than when the bug was last modified.
 
 ## Global `bug` command
 
