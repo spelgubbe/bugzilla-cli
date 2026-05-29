@@ -48,13 +48,19 @@ Prints the bug summary, metadata, and all comments. Output is paged automaticall
 python bug.py comment 12345 -m "Fixed in commit abc123."
 ```
 
+Omit `-m` to open your default editor instead.
+
 ### Search for bugs
 
 ```bash
 python bug.py search --assigned-to me --status NEW
 python bug.py search --product Firefox --component Networking --status ASSIGNED
-python bug.py search --changed-after 2026-01-01 --format json
+python bug.py search --mentions login --since 2026-05-01
+python bug.py search --mentions authorization --since 2026-05-01 --until 2026-05-15
+python bug.py search --assigned-to me --format json
 ```
+
+`--mentions` searches the full text of all comments and descriptions. `--since` and `--until` filter by last activity date.
 
 ### Edit a bug
 
@@ -129,6 +135,7 @@ bugzilla-cli/
 ├── render.py       # terminal formatting
 ├── requirements.txt
 ├── pyproject.toml
-├── setup.sh
+├── setup.sh        # Linux / macOS setup
+├── setup.ps1       # Windows setup
 └── .env.example
 ```
