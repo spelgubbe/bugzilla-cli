@@ -67,13 +67,14 @@ def add_comment(bug_id, message):
 @click.option("--severity", multiple=True, help="Severity (repeatable)")
 @click.option("--milestone", default=None, help="Target milestone")
 @click.option("--text", default=None, help="Free-text search (quicksearch)")
-@click.option("--changed-before", default=None, metavar="DATE", help="Bugs not touched since this date (YYYY-MM-DD)")
-@click.option("--changed-after", default=None, metavar="DATE", help="Bugs touched after this date (YYYY-MM-DD)")
-@click.option("--limit", default=25, show_default=True, help="Max results")
+@click.option("--mentions", default=None, help="Word or phrase appearing in any comment or description")
+@click.option("--since", default=None, metavar="DATE", help="Bugs active after this date (YYYY-MM-DD)")
+@click.option("--until", default=None, metavar="DATE", help="Bugs not touched after this date (YYYY-MM-DD)")
+@click.option("--limit", default=0, show_default=True, help="Max results (0 = no limit)")
 @click.option("--format", "fmt", default="table", show_default=True,
               type=click.Choice(["table", "ids", "json"], case_sensitive=False),
               help="Output format")
-def search(assigned_to, reporter, cc, product, component, status, priority, severity, milestone, text, changed_before, changed_after, limit, fmt):
+def search(assigned_to, reporter, cc, product, component, status, priority, severity, milestone, text, mentions, since, until, limit, fmt):
     """Search for bugs."""
     try:
         bugs = search_bugs(
@@ -87,8 +88,9 @@ def search(assigned_to, reporter, cc, product, component, status, priority, seve
             severity=severity,
             target_milestone=milestone,
             text=text,
-            changed_before=changed_before,
-            changed_after=changed_after,
+            mentions=mentions,
+            changed_after=since,
+            changed_before=until,
             limit=limit,
         )
     except Exception as e:

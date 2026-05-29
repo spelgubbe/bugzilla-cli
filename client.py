@@ -196,9 +196,10 @@ def search_bugs(
     severity: tuple = (),
     target_milestone: str = None,
     text: str = None,
+    mentions: str = None,
     changed_before: str = None,
     changed_after: str = None,
-    limit: int = 25,
+    limit: int = 0,
 ) -> list[dict]:
     params = {"limit": limit}
     if assigned_to:
@@ -231,8 +232,11 @@ def search_bugs(
         else:
             flat.append((k, v))
 
-    # Boolean chart syntax for date range filtering
+    # Boolean chart syntax for comment text and date range filtering
     chart = 1
+    if mentions:
+        flat += [("f" + str(chart), "longdesc"), ("o" + str(chart), "substring"), ("v" + str(chart), mentions)]
+        chart += 1
     if changed_before:
         flat += [("f" + str(chart), "delta_ts"), ("o" + str(chart), "lessthan"), ("v" + str(chart), changed_before)]
         chart += 1
