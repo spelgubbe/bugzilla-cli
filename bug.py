@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import click
-from client import get_thread, get_bug_summary, post_comment, search_bugs, update_bug, get_activity, parse_since, resolve_me
+from client import get_thread, get_bug_summary, post_comment, search_bugs, update_bug, get_activity, get_comments, parse_since, resolve_me
 from render import render_thread, render_search_results, render_activity
 
 # Allow `bug <id>` as a shorthand for `bug show <id>`
@@ -108,24 +108,54 @@ def search(assigned_to, reporter, cc, product, component, status, priority, seve
 @cli.command("activity")
 @click.option("--since", default="24h", show_default=True, metavar="TIMESPEC",
               help="Show comments since this point (e.g. 24h, 2d, 1w, or YYYY-MM-DD)")
-@click.option("--until", default=None, metavar="TIMESPEC",
-              help="Show comments up to this point (e.g. 2026-05-29)")
 @click.option("--product", default=None, help="Filter by product")
 @click.option("--component", default=None, help="Filter by component")
-@click.option("--author", default=None, help="Only show comments by this person (or 'me')")
 @click.option("--limit", default=0, show_default=True, help="Max bugs to scan (0 = no limit)")
 @click.option("--format", "fmt", default="table", show_default=True,
               type=click.Choice(["table", "json"], case_sensitive=False),
               help="Output format")
 @click.option("--output", "outfile", default=None, metavar="FILE",
               help="Write output to a file instead of stdout")
-def activity(since, until, product, component, author, limit, fmt, outfile):
+def activity(since, product, component, limit, fmt, outfile):
     """Show recent comments across the tracker."""
+    try:
+        since_dt = parse_since(since)
+        items = get_activity(since_dt, product=product, component=component, limit=limit)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    output = render_activity(items, since_dt, fmt=fmt)
+    if outfile:
+        with open(outfile, "w") as f:
+            f.write(output + "\n")
+        click.echo(f"Written to {outfile}", err=True)
+    elif sys.stdout.isatty():
+        click.echo_via_pager(output)
+    else:
+        click.echo(output)
+
+
+@cli.command("comments")
+@click.option("--author", default=None, help="Only show comments by this person (or 'me')")
+@click.option("--since", default="24h", show_default=True, metavar="TIMESPEC",
+              help="Comments created after this point (e.g. 24h, 2d, 1w, or YYYY-MM-DD)")
+@click.option("--until", default=None, metavar="TIMESPEC",
+              help="Comments created before this point (e.g. 2026-05-29)")
+@click.option("--product", default=None, help="Filter by product")
+@click.option("--component", default=None, help="Filter by component")
+@click.option("--limit", default=0, show_default=True, help="Max bugs to scan (0 = no limit)")
+@click.option("--format", "fmt", default="table", show_default=True,
+              type=click.Choice(["table", "json"], case_sensitive=False),
+              help="Output format")
+@click.option("--output", "outfile", default=None, metavar="FILE",
+              help="Write output to a file instead of stdout")
+def comments(author, since, until, product, component, limit, fmt, outfile):
+    """Show comments filtered by author and time window."""
     try:
         since_dt = parse_since(since)
         until_dt = parse_since(until) if until else None
         resolved_author = resolve_me(author) if author else None
-        items = get_activity(since_dt, until_dt=until_dt, product=product, component=component, author=resolved_author, limit=limit)
+        items = get_comments(since_dt, until_dt=until_dt, author=resolved_author, product=product, component=component, limit=limit)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

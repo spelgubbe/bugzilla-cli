@@ -160,7 +160,7 @@ def parse_since(since: str) -> str:
         raise ValueError(f"Invalid --since value: {since!r}. Use e.g. '24h', '2d', '1w', or 'YYYY-MM-DD'")
 
 
-def get_activity(since_dt: str, until_dt: str = None, product: str = None, component: str = None, author: str = None, limit: int = 0) -> list[dict]:
+def _fetch_bugs_in_window(since_dt: str, until_dt: str = None, product: str = None, component: str = None, limit: int = 0) -> list[dict]:
     params = [
         ("f1", "delta_ts"), ("o1", "greaterthan"), ("v1", since_dt),
         ("order", "changeddate DESC"),
@@ -174,19 +174,37 @@ def get_activity(since_dt: str, until_dt: str = None, product: str = None, compo
         params.append(("product", product))
     if component:
         params.append(("component", component))
-
     _check_config()
-    url = f"{_BASE_URL}/rest/bug"
-    r = httpx.get(url, params=params, timeout=30)
+    r = httpx.get(f"{_BASE_URL}/rest/bug", params=params, timeout=30)
     r.raise_for_status()
-    bugs = r.json()["bugs"]
+    return r.json()["bugs"]
 
+
+def get_activity(since_dt: str, product: str = None, component: str = None, limit: int = 0) -> list[dict]:
+    bugs = _fetch_bugs_in_window(since_dt, product=product, component=component, limit=limit)
     results = []
     for bug in bugs:
         comments_raw = _get(f"/bug/{bug['id']}/comment")["bugs"][str(bug['id'])]["comments"]
-        recent = [c for c in comments_raw if c["creation_time"] >= since_dt and (not until_dt or c["creation_time"] <= until_dt) and (not author or c["creator"] == author)]
+        recent = [c for c in comments_raw if c["creation_time"] >= since_dt]
         if recent:
             results.append({"bug": bug, "comments": recent})
+    results.sort(key=lambda i: i["comments"][-1]["creation_time"], reverse=True)
+    return results
+
+
+def get_comments(since_dt: str, until_dt: str = None, author: str = None, product: str = None, component: str = None, limit: int = 0) -> list[dict]:
+    bugs = _fetch_bugs_in_window(since_dt, until_dt=until_dt, product=product, component=component, limit=limit)
+    results = []
+    for bug in bugs:
+        comments_raw = _get(f"/bug/{bug['id']}/comment")["bugs"][str(bug['id'])]["comments"]
+        matching = [
+            c for c in comments_raw
+            if c["creation_time"] >= since_dt
+            and (not until_dt or c["creation_time"] <= until_dt)
+            and (not author or c["creator"] == author)
+        ]
+        if matching:
+            results.append({"bug": bug, "comments": matching})
     results.sort(key=lambda i: i["comments"][-1]["creation_time"], reverse=True)
     return results
 
