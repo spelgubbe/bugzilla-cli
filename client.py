@@ -39,6 +39,10 @@ def _post(path: str, body: dict) -> dict:
     return r.json()
 
 
+def get_bug_summary(bug_id: int) -> str:
+    return _get(f"/bug/{bug_id}")["bugs"][0]["summary"]
+
+
 def get_thread(bug_id: int) -> dict:
     bug = _get(f"/bug/{bug_id}")["bugs"][0]
     comments_raw = _get(f"/bug/{bug_id}/comment")["bugs"][str(bug_id)]["comments"]

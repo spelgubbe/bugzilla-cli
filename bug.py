@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import click
-from client import get_thread, post_comment, search_bugs, update_bug, get_activity, parse_since
+from client import get_thread, get_bug_summary, post_comment, search_bugs, update_bug, get_activity, parse_since
 from render import render_thread, render_search_results, render_activity
 
 # Allow `bug <id>` as a shorthand for `bug show <id>`
@@ -24,9 +24,13 @@ def cli():
 
 @cli.command("show")
 @click.argument("bug_id", type=int)
-def show_bug(bug_id):
+@click.option("--summary", is_flag=True, help="Print only the bug summary")
+def show_bug(bug_id, summary):
     """Display a bug thread."""
     try:
+        if summary:
+            click.echo(f"Bug {bug_id} - {get_bug_summary(bug_id)}")
+            return
         thread = get_thread(bug_id)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
