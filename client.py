@@ -160,12 +160,14 @@ def parse_since(since: str) -> str:
         raise ValueError(f"Invalid --since value: {since!r}. Use e.g. '24h', '2d', '1w', or 'YYYY-MM-DD'")
 
 
-def get_activity(since_dt: str, product: str = None, component: str = None, limit: int = 0) -> list[dict]:
+def get_activity(since_dt: str, until_dt: str = None, product: str = None, component: str = None, author: str = None, limit: int = 0) -> list[dict]:
     params = [
         ("f1", "delta_ts"), ("o1", "greaterthan"), ("v1", since_dt),
         ("order", "changeddate DESC"),
         ("api_key", _API_KEY),
     ]
+    if until_dt:
+        params += [("f2", "delta_ts"), ("o2", "lessthan"), ("v2", until_dt)]
     if limit:
         params.append(("limit", limit))
     if product:
@@ -182,7 +184,7 @@ def get_activity(since_dt: str, product: str = None, component: str = None, limi
     results = []
     for bug in bugs:
         comments_raw = _get(f"/bug/{bug['id']}/comment")["bugs"][str(bug['id'])]["comments"]
-        recent = [c for c in comments_raw if c["creation_time"] >= since_dt]
+        recent = [c for c in comments_raw if c["creation_time"] >= since_dt and (not until_dt or c["creation_time"] <= until_dt) and (not author or c["creator"] == author)]
         if recent:
             results.append({"bug": bug, "comments": recent})
     results.sort(key=lambda i: i["comments"][-1]["creation_time"], reverse=True)
@@ -201,11 +203,12 @@ def search_bugs(
     target_milestone: str = None,
     text: str = None,
     mentions: str = None,
+    commenter: str = None,
     changed_before: str = None,
     changed_after: str = None,
     limit: int = 0,
 ) -> list[dict]:
-    params = {"limit": limit}
+    params = {"limit": limit} if limit else {}
     if assigned_to:
         params["assigned_to"] = resolve_me(assigned_to)
     if reporter:
@@ -240,6 +243,9 @@ def search_bugs(
     chart = 1
     if mentions:
         flat += [("f" + str(chart), "longdesc"), ("o" + str(chart), "substring"), ("v" + str(chart), mentions)]
+        chart += 1
+    if commenter:
+        flat += [("f" + str(chart), "commenter"), ("o" + str(chart), "equals"), ("v" + str(chart), resolve_me(commenter))]
         chart += 1
     if changed_before:
         flat += [("f" + str(chart), "delta_ts"), ("o" + str(chart), "lessthan"), ("v" + str(chart), changed_before)]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import click
-from client import get_thread, get_bug_summary, post_comment, search_bugs, update_bug, get_activity, parse_since
+from client import get_thread, get_bug_summary, post_comment, search_bugs, update_bug, get_activity, parse_since, resolve_me
 from render import render_thread, render_search_results, render_activity
 
 # Allow `bug <id>` as a shorthand for `bug show <id>`
@@ -72,13 +72,14 @@ def add_comment(bug_id, message):
 @click.option("--milestone", default=None, help="Target milestone")
 @click.option("--text", default=None, help="Free-text search (quicksearch)")
 @click.option("--mentions", default=None, help="Word or phrase appearing in any comment or description")
+@click.option("--commenter", default=None, help="Bugs where this person has commented (or 'me')")
 @click.option("--since", default=None, metavar="DATE", help="Bugs active after this date (YYYY-MM-DD)")
 @click.option("--until", default=None, metavar="DATE", help="Bugs not touched after this date (YYYY-MM-DD)")
 @click.option("--limit", default=0, show_default=True, help="Max results (0 = no limit)")
 @click.option("--format", "fmt", default="table", show_default=True,
               type=click.Choice(["table", "ids", "json"], case_sensitive=False),
               help="Output format")
-def search(assigned_to, reporter, cc, product, component, status, priority, severity, milestone, text, mentions, since, until, limit, fmt):
+def search(assigned_to, reporter, cc, product, component, status, priority, severity, milestone, text, mentions, commenter, since, until, limit, fmt):
     """Search for bugs."""
     try:
         bugs = search_bugs(
@@ -93,6 +94,7 @@ def search(assigned_to, reporter, cc, product, component, status, priority, seve
             target_milestone=milestone,
             text=text,
             mentions=mentions,
+            commenter=commenter,
             changed_after=since,
             changed_before=until,
             limit=limit,
@@ -106,19 +108,24 @@ def search(assigned_to, reporter, cc, product, component, status, priority, seve
 @cli.command("activity")
 @click.option("--since", default="24h", show_default=True, metavar="TIMESPEC",
               help="Show comments since this point (e.g. 24h, 2d, 1w, or YYYY-MM-DD)")
+@click.option("--until", default=None, metavar="TIMESPEC",
+              help="Show comments up to this point (e.g. 2026-05-29)")
 @click.option("--product", default=None, help="Filter by product")
 @click.option("--component", default=None, help="Filter by component")
+@click.option("--author", default=None, help="Only show comments by this person (or 'me')")
 @click.option("--limit", default=0, show_default=True, help="Max bugs to scan (0 = no limit)")
 @click.option("--format", "fmt", default="table", show_default=True,
               type=click.Choice(["table", "json"], case_sensitive=False),
               help="Output format")
 @click.option("--output", "outfile", default=None, metavar="FILE",
               help="Write output to a file instead of stdout")
-def activity(since, product, component, limit, fmt, outfile):
+def activity(since, until, product, component, author, limit, fmt, outfile):
     """Show recent comments across the tracker."""
     try:
         since_dt = parse_since(since)
-        items = get_activity(since_dt, product=product, component=component, limit=limit)
+        until_dt = parse_since(until) if until else None
+        resolved_author = resolve_me(author) if author else None
+        items = get_activity(since_dt, until_dt=until_dt, product=product, component=component, author=resolved_author, limit=limit)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
